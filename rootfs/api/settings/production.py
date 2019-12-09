@@ -14,6 +14,7 @@ DEBUG = bool(os.environ.get('DEIS_DEBUG', False))
 
 # A boolean flag that turns on/off verbose logging.
 LOG_VERBOSE = bool(os.environ.get('LOG_VERBOSE', False))
+LOG_LEVEL = os.environ.get('LOG_LEVEL', 'DEBUG')
 
 # If set to True, Django's normal exception handling of view functions
 # will be suppressed, and exceptions will propagate upwards
@@ -175,7 +176,7 @@ APPEND_SLASH = False
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'root': {'level': 'DEBUG' if DEBUG else 'INFO'},
+    'root': {'level': LOG_LEVEL},
     'formatters': {
         'verbose': {
             'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s',
@@ -199,7 +200,7 @@ LOGGING = {
             'class': 'logging.NullHandler',
         },
         'console': {
-            'level': 'DEBUG',
+            'level': LOG_LEVEL,
             'class': 'logging.StreamHandler',
             'formatter': 'verbose' if LOG_VERBOSE else 'simple'
         }
@@ -230,14 +231,17 @@ LOGGING = {
         },
         'api': {
             'handlers': ['console'],
+            'level': LOG_LEVEL,
             'propagate': True,
         },
         'registry': {
             'handlers': ['console'],
+            'level': LOG_LEVEL,
             'propagate': True,
         },
         'scheduler': {
             'handlers': ['console'],
+            'level': LOG_LEVEL,
             'propagate': True,
         },
     }
