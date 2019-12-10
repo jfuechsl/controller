@@ -171,15 +171,16 @@ def async_run(tasks):
     executor.shutdown(wait=True)
 
 
-async def async_task(params, loop):
+async def async_task(task, loop):
     """
     Perform a task asynchronously.
     """
     # get the calling function
-    logger.debug('Running {}'.format(params))
+    logger.info('Running {}'.format(getattr(task, 'func')))
+    logger.debug('Task {}'.format(task))
     # This executes a task in its own thread (in parallel)
-    await loop.run_in_executor(None, params)
-    logger.debug('Finished running {}'.format(params))
+    await loop.run_in_executor(None, task)
+    logger.info('Finished running {}'.format(getattr(task, 'func')))
 
 
 if __name__ == "__main__":
