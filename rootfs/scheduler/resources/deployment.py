@@ -385,6 +385,7 @@ class Deployment(Resource):
         Request for new ReplicaSet of Deployment and search for failed events involved by that RS
         Raises: KubeException when RS have events with FailedCreate reason
         """
+<<<<<<< bb223a89534c68ca529a990234abed4a9d412f02
         max_retries = 3
         retry_sleep_sec = 3.0
         for try_ in range(max_retries):
@@ -415,6 +416,30 @@ class Deployment(Resource):
                         log = self._get_formatted_messages(events)
                         self.log(namespace, log)
                         raise KubeException(log)
+=======
+        response = self.rs.get(namespace, labels=labels)
+        # BEGIN DEBUGGING STUFF
+        self.log("Checking for failed events: \n{}".format(json.dumps(labels, indent=2)))
+        # END
+        data = response.json()
+        # BEGIN DEBUGGING STUFF
+        self.log("Got response: \n{}".format(json.dumps(data, indent=2)))
+        # END
+        fields = {
+            'involvedObject.kind': 'ReplicaSet',
+            'involvedObject.name': data['items'][0]['metadata']['name'],
+            'involvedObject.namespace': namespace,
+            'involvedObject.uid': data['items'][0]['metadata']['uid'],
+        }
+        events_list = self.ns.events(namespace, fields=fields).json()
+        events = events_list.get('items', [])
+        if events is not None and len(events) != 0:
+            for event in events:
+                if event['reason'] == 'FailedCreate':
+                    log = self._get_formatted_messages(events)
+                    self.log(namespace, log)
+                    raise KubeException(log)
+>>>>>>> Add debugging logs to _check_for_failed_events
 
     @staticmethod
     def _get_formatted_messages(events):
