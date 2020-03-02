@@ -380,11 +380,11 @@ class Deployment(Resource):
         """
         response = self.rs.get(namespace, labels=labels)
         # BEGIN DEBUGGING STUFF
-        self.log("Checking for failed events: \n{}".format(json.dumps(labels, indent=2)))
+        self.log(namespace, "Checking for failed events: \n{}".format(json.dumps(labels, indent=2)))
         # END
         data = response.json()
         # BEGIN DEBUGGING STUFF
-        self.log("Got response: \n{}".format(json.dumps(data, indent=2)))
+        self.log(namespace, "Got response: \n{}".format(json.dumps(data, indent=2)))
         # END
         fields = {
             'involvedObject.kind': 'ReplicaSet',
