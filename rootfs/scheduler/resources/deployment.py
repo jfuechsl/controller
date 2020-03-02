@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import json
 import time
-import logging
+import sys
 
 from packaging.version import parse
 
@@ -391,12 +391,10 @@ class Deployment(Resource):
             }
         except Exception as e:
             # BEGIN DEBUGGING STUFF
-            self.log(namespace, "Checking for failed events: \n{}".format(
-                json.dumps(labels, indent=2)), "ERROR")
-            self.log(namespace, "Got response: \n{}".format(json.dumps(data, indent=2)), "ERROR")
-            logger = logging.getLogger()
-            for handler in logger.handlers:
-                handler.flush()
+            print("ASDFASDF Checking for failed events: \n{}".format(
+                json.dumps(labels, indent=2)))
+            print("ASDFASDF Got response: \n{}".format(json.dumps(data, indent=2)))
+            sys.stdout.flush()
             raise e
         # END
         events_list = self.ns.events(namespace, fields=fields).json()
