@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 import json
 import time
-import sys
 
 from packaging.version import parse
 
