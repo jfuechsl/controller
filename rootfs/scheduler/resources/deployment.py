@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import json
 import time
+import logging
 
 from packaging.version import parse
 
@@ -418,19 +419,25 @@ class Deployment(Resource):
                         raise KubeException(log)
 =======
         response = self.rs.get(namespace, labels=labels)
-        # BEGIN DEBUGGING STUFF
-        self.log(namespace, "Checking for failed events: \n{}".format(json.dumps(labels, indent=2)))
-        # END
         data = response.json()
         # BEGIN DEBUGGING STUFF
-        self.log(namespace, "Got response: \n{}".format(json.dumps(data, indent=2)))
+        try:
+            fields = {
+                'involvedObject.kind': 'ReplicaSet',
+                'involvedObject.name': data['items'][0]['metadata']['name'],
+                'involvedObject.namespace': namespace,
+                'involvedObject.uid': data['items'][0]['metadata']['uid'],
+            }
+        except Exception as e:
+            # BEGIN DEBUGGING STUFF
+            self.log(namespace, "Checking for failed events: \n{}".format(
+                json.dumps(labels, indent=2)), "ERROR")
+            self.log(namespace, "Got response: \n{}".format(json.dumps(data, indent=2)), "ERROR")
+            logger = logging.getLogger()
+            for handler in logger.handlers:
+                handler.flush()
+            raise e
         # END
-        fields = {
-            'involvedObject.kind': 'ReplicaSet',
-            'involvedObject.name': data['items'][0]['metadata']['name'],
-            'involvedObject.namespace': namespace,
-            'involvedObject.uid': data['items'][0]['metadata']['uid'],
-        }
         events_list = self.ns.events(namespace, fields=fields).json()
         events = events_list.get('items', [])
         if events is not None and len(events) != 0:
