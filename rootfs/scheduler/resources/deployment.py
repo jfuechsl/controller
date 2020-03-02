@@ -139,6 +139,7 @@ class Deployment(Resource):
     def update(self, namespace, name, image, entrypoint, command, spec_annotations, **kwargs):
         manifest = self.manifest(namespace, name, image,
                                  entrypoint, command, spec_annotations, **kwargs)
+        self.log(namespace, "Updating a deployment: \n{}".format(json.dumps(manifest, indent=2)))
 
         url = self.api("/namespaces/{}/deployments/{}", namespace, name)
         response = self.http_put(url, json=manifest)
