@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 import json
 import time
-import sys
 
 from packaging.version import parse
 
@@ -396,14 +395,8 @@ class Deployment(Resource):
                     self.log(namespace, "Got an empty ReplicaSet list. Trying one more time.")
                     time.sleep(retry_sleep_sec)
                     continue
-                # BEGIN DEBUGGING STUFF
-                print("ASDFASDF Checking for failed events: \n{}".format(
-                    json.dumps(labels, indent=2)))
-                print("ASDFASDF Got response: \n{}".format(json.dumps(data, indent=2)))
-                sys.stdout.flush()
                 self.log(namespace, "Did not find the ReplicaSet for {}".format(
                     json.dumps(labels)), "WARN")
-                # END
                 raise e
             events_list = self.ns.events(namespace, fields=fields).json()
             events = events_list.get('items', [])
