@@ -137,17 +137,13 @@ class Deployment(Resource):
         return response
 
     def update(self, namespace, name, image, entrypoint, command, spec_annotations, **kwargs):
-        # TODO:
-        # - set replicas to the current replicas value of the deployment
-        # - remove the following log statement
+        # Set the replicas value to the current replicas of the deployment.
+        # This avoids resetting the replicas which causes disruptions during the deployment.
         deployment = self.deployment.get(namespace, name).json()
         current_replicas = int(deployment['spec']['replicas'])
-        self.log(namespace, "Updating a deployment: replicas(original): {}, replicas(current): {}".format(
-            kwargs['replicas'], current_replicas))
         kwargs['replicas'] = current_replicas
         manifest = self.manifest(namespace, name, image,
                                  entrypoint, command, spec_annotations, **kwargs)
-        # self.log(namespace, "Updating a deployment: \n{}".format(json.dumps(manifest, indent=2)))
 
         url = self.api("/namespaces/{}/deployments/{}", namespace, name)
         response = self.http_put(url, json=manifest)
