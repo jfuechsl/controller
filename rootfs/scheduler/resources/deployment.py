@@ -42,7 +42,7 @@ class Deployment(Resource):
         return response
 
     def manifest(self, namespace, name, image, entrypoint, command, spec_annotations, **kwargs):
-        replicas = kwargs.get('replicas', None)
+        replicas = kwargs.get('replicas', 0)
         batches = kwargs.get('deploy_batches', None)
         tags = kwargs.get('tags', {})
 
@@ -63,13 +63,12 @@ class Deployment(Resource):
                 }
             },
             'spec': {
+                'replicas': replicas,
                 'selector': {
                     'matchLabels': labels
                 }
             }
         }
-        if replicas is not None:
-            manifest['spec']['replicas'] = replicas
 
         # Add in Rollback (if asked for)
         rollback = kwargs.get('rollback', False)
@@ -91,7 +90,7 @@ class Deployment(Resource):
         maxSurge = self._get_deploy_steps(batches, tags)
         # if replicas are higher than maxSurge then the old deployment is never scaled down
         # maxSurge can't be 0 when maxUnavailable is 0 and the other way around
-        if replicas is not None and replicas > 0 and replicas < maxSurge:
+        if replicas > 0 and replicas < maxSurge:
             maxSurge = replicas
 
         # http://kubernetes.io/docs/user-guide/deployments/#strategy
