@@ -515,13 +515,13 @@ class App(UuidAuditedModel):
 
 
         # The self.structure.items() can be e.g. dict_items([('migration', 1), ('web', 1)]) where the tuples are ("pod_name","scale")
-        migration_pod_exists = dict( self.structure.items() ).get("migration")
-        if migration_pod_exists == None:
-            self.log('KY_MIGRATION_POD: no pod named "migration" was found, so no action needed.', level=logging.INFO)
-        else:
+        migration_pod_exists = ('migration' in self.structure) and (self.structure['migration']>0)
+        if migration_pod_exists:
             self.log('KY_MIGRATION_POD: pod named "migration" was found, so we are going to deploy it first.', level=logging.INFO)
             if 'migration' in deploys:
                 deploys.move_to_end('migration', last=False)
+        else:
+            self.log('KY_MIGRATION_POD: no pod named "migration" was found or is is scaled to 0, so no action needed.', level=logging.INFO)
 
         # Check if any proc type has a Deployment in progress
         self._check_deployment_in_progress(deploys, force_deploy)
@@ -550,13 +550,14 @@ class App(UuidAuditedModel):
             ]
 
             try:
-                if migration_pod_exists == None:
-                    async_run(tasks)
-                else:
+                if migration_pod_exists:
                     # Deploy the "migration" pod first. If it fails the readiness checks the whole deployment will fail
                     async_run( [tasks[0]])
                     # Since the "migration" deployment ran (== tasks[0]), we only need to ran the rest of the deployments omitting the tasks[0]
                     async_run(tasks[1:])
+                else:
+                    async_run(tasks)
+
             except KubeException as e:
                 # Don't rollback if the previous release doesn't have a build which means
                 # this is the first build and all the previous releases are just config changes.
