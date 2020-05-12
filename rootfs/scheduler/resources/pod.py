@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import operator
 import os
 import time
+import re
 
 from scheduler.exceptions import KubeException, KubeHTTPException
 from scheduler.resources import Resource
@@ -113,9 +114,9 @@ class Pod(Resource):
             'kind': 'Pod',
             'apiVersion': 'v1',
             'metadata': {
-              'name': name,
-              'namespace': namespace,
-              'labels': labels
+                'name': name,
+                'namespace': namespace,
+                'labels': labels
             },
             'spec': {}
         }
@@ -311,23 +312,23 @@ class Pod(Resource):
 
             if lifecycle_post_start:
                 lifecycle["postStart"] = {
-                        'exec': {
-                            "command": [
-                                "/bin/bash",
-                                "-c",
-                                "{0}".format(lifecycle_post_start)
-                            ]
-                        }
+                    'exec': {
+                        "command": [
+                            "/bin/bash",
+                            "-c",
+                            "{0}".format(lifecycle_post_start)
+                        ]
+                    }
                 }
             if lifecycle_pre_stop:
                 lifecycle["preStop"] = {
-                        'exec': {
-                            "command": [
-                                "/bin/bash",
-                                "-c",
-                                "{0}".format(lifecycle_pre_stop)
-                            ]
-                        }
+                    'exec': {
+                        "command": [
+                            "/bin/bash",
+                            "-c",
+                            "{0}".format(lifecycle_pre_stop)
+                        ]
+                    }
                 }
             container["lifecycle"] = dict(lifecycle)
 
@@ -582,6 +583,13 @@ class Pod(Resource):
         if not os.environ.get("DEIS_IGNORE_SCHEDULING_FAILURE", False):
             # FailedScheduling relates limits
             event_errors["FailedScheduling"] = "FailedScheduling"
+        # Some error events are temporary based on the message.
+        # We excempt those based on a match of the event message.
+        event_reason_excemptions = {
+            'Failed': [
+                re.compile(r"Error: secrets \".+\" is forbidden: .+ no path found to object")
+            ]
+        }
 
         # Nicer error than from the event
         # Often this gets to ImageBullBackOff before we can introspect tho
@@ -593,6 +601,14 @@ class Pod(Resource):
         if reason in container_errors:
             for event in self.events(pod):
                 if event['reason'] in event_errors.keys():
+                    # check if event is excempted
+                    excempted = False
+                    for rx in event_reason_excemptions.get(event['reason'], []):
+                        if rx.match(event['message']):
+                            excempted = True
+                            break
+                    if excempted:
+                        continue
                     # only show a given error once
                     event_errors.pop(event['reason'])
                     # strip out whitespaces on either side
