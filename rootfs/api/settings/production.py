@@ -84,6 +84,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'mozilla_django_oidc.middleware.SessionRefresh',
     'django.contrib.messages.middleware.MessageMiddleware',
     'api.middleware.APIVersionMiddleware',
 ]
@@ -106,14 +107,24 @@ INSTALLED_APPS = (
     'jsonfield',
     'rest_framework',
     'rest_framework.authtoken',
+    'mozilla_django_oidc',
     # Deis apps
     'api'
 )
 
 AUTHENTICATION_BACKENDS = (
+    "api.authentication.KYAuthOIDCBackend",
     "django.contrib.auth.backends.ModelBackend",
     "guardian.backends.ObjectPermissionBackend",
 )
+
+OIDC_RP_CLIENT_ID = os.environ['OIDC_RP_CLIENT_ID']
+OIDC_RP_CLIENT_SECRET = os.environ['OIDC_RP_CLIENT_SECRET']
+OIDC_OP_AUTHORIZATION_ENDPOINT = os.environ["OIDC_AUTH_ENDPOINT"]
+OIDC_OP_TOKEN_ENDPOINT = os.environ["OIDC_TOKEN_ENDPOINT"]
+OIDC_OP_USER_ENDPOINT = os.environ["OIDC_USERINFO_ENDPOINT"]
+OIDC_RP_SCOPES = 'openid email profile'
+OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = 600
 
 ANONYMOUS_USER_ID = -1
 LOGIN_URL = '/v2/auth/login/'
