@@ -29,19 +29,21 @@ class KYAuthOIDCBackend(OIDCAuthenticationBackend):
     def create_user(self, claims):
         user = super().create_user(claims)
 
+        user.email = claims.get('email')
         user.first_name = claims.get('given_name', '')
         user.last_name = claims.get('family_name', '')
-        user.is_staff = (claims.get('staff', 'false') == 'true')
-        user.is_superuser = (claims.get('is_admin', 'false') == 'true')
+        user.is_staff = claims.get('staff', False)
+        user.is_superuser = claims.get('is_admin', False)
         user.save()
 
         return user
 
     def update_user(self, user, claims):
+        user.email = claims.get('email')
         user.first_name = claims.get('given_name', '')
         user.last_name = claims.get('family_name', '')
-        user.is_staff = (claims.get('staff', 'false') == 'true')
-        user.is_superuser = (claims.get('is_admin', 'false') == 'true')
+        user.is_staff = claims.get('staff', False)
+        user.is_superuser = claims.get('is_admin', False)
         user.save()
 
         return user
