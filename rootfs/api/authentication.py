@@ -29,6 +29,7 @@ class KYAuthOIDCBackend(OIDCAuthenticationBackend):
     def create_user(self, claims):
         user = super().create_user(claims)
 
+        user.username = claims.get('preferred_username', claims.get('email'))
         user.email = claims.get('email')
         user.first_name = claims.get('given_name', '')
         user.last_name = claims.get('family_name', '')
@@ -39,6 +40,7 @@ class KYAuthOIDCBackend(OIDCAuthenticationBackend):
         return user
 
     def update_user(self, user, claims):
+        user.username = claims.get('preferred_username', claims.get('email'))
         user.email = claims.get('email')
         user.first_name = claims.get('given_name', '')
         user.last_name = claims.get('family_name', '')
