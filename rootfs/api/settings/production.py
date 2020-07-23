@@ -84,6 +84,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'mozilla_django_oidc.middleware.SessionRefresh',
     'django.contrib.messages.middleware.MessageMiddleware',
     'api.middleware.APIVersionMiddleware',
 ]
@@ -106,14 +107,26 @@ INSTALLED_APPS = (
     'jsonfield',
     'rest_framework',
     'rest_framework.authtoken',
+    'mozilla_django_oidc',
     # Deis apps
     'api'
 )
 
 AUTHENTICATION_BACKENDS = (
+    "api.authentication.KYAuthOIDCBackend",
     "django.contrib.auth.backends.ModelBackend",
     "guardian.backends.ObjectPermissionBackend",
 )
+
+OIDC_RP_CLIENT_ID = os.environ['OIDC_RP_CLIENT_ID']
+OIDC_RP_CLIENT_SECRET = os.environ['OIDC_RP_CLIENT_SECRET']
+OIDC_RP_SIGN_ALGO = 'RS256'
+OIDC_OP_AUTHORIZATION_ENDPOINT = os.environ["OIDC_AUTH_ENDPOINT"]
+OIDC_OP_TOKEN_ENDPOINT = os.environ["OIDC_TOKEN_ENDPOINT"]
+OIDC_OP_USER_ENDPOINT = os.environ["OIDC_USERINFO_ENDPOINT"]
+OIDC_OP_JWKS_ENDPOINT = os.environ["OIDC_OP_JWKS_ENDPOINT"]
+OIDC_RP_SCOPES = 'openid email profile'
+OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = 600
 
 ANONYMOUS_USER_ID = -1
 LOGIN_URL = '/v2/auth/login/'
@@ -148,6 +161,8 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # standard datetime format used for logging, model timestamps, etc.
 DEIS_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 
+OIDC_DRF_AUTH_BACKEND = 'api.authentication.KYAuthOIDCBackend'
+
 REST_FRAMEWORK = {
     'DATETIME_FORMAT': DEIS_DATETIME_FORMAT,
     'DEFAULT_MODEL_SERIALIZER_CLASS': 'rest_framework.serializers.ModelSerializer',
@@ -156,6 +171,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
+        'mozilla_django_oidc.contrib.drf.OIDCAuthentication',
     ),
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',
@@ -232,6 +248,11 @@ LOGGING = {
             'propagate': True,
         },
         'scheduler': {
+            'handlers': ['console'],
+            'level': LOG_LEVEL,
+            'propagate': True,
+        },
+        'mozilla_django_oidc': {
             'handlers': ['console'],
             'level': LOG_LEVEL,
             'propagate': True,

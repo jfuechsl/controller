@@ -53,7 +53,7 @@ urlpatterns = [
     # application services
     url(r"^apps/(?P<id>{})/services/?$".format(settings.APP_URL_REGEX),
         views.ServiceViewSet.as_view({'post': 'create_or_update',
-                                     'get': 'list', 'delete': 'delete'})),
+                                      'get': 'list', 'delete': 'delete'})),
     # application actions
     url(r"^apps/(?P<id>{})/scale/?$".format(settings.APP_URL_REGEX),
         views.AppViewSet.as_view({'post': 'scale'})),
@@ -97,6 +97,7 @@ urlpatterns = [
     url(r'^hooks/config/?$',
         views.ConfigHookViewSet.as_view({'post': 'create'})),
     # authn / authz
+    url(r'^oidc/', include('mozilla_django_oidc.urls')),
     url(r'^auth/register/?$',
         views.UserRegistrationViewSet.as_view({'post': 'create'})),
     url(r'^auth/cancel/?$',
