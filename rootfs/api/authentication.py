@@ -34,7 +34,7 @@ class KYAuthOIDCBackend(OIDCAuthenticationBackend):
         user.first_name = claims.get('given_name', '')
         user.last_name = claims.get('family_name', '')
         user.is_staff = claims.get('staff', False)
-        user.is_superuser = claims.get('is_admin', False)
+        user.is_superuser = claims.get('is_admin', False) or user.is_staff
         user.save()
 
         return user
@@ -45,7 +45,7 @@ class KYAuthOIDCBackend(OIDCAuthenticationBackend):
         user.first_name = claims.get('given_name', '')
         user.last_name = claims.get('family_name', '')
         user.is_staff = claims.get('staff', False)
-        user.is_superuser = claims.get('is_admin', False)
+        user.is_superuser = claims.get('is_admin', False) or user.is_staff
         user.save()
 
         return user
