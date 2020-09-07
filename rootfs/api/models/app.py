@@ -502,6 +502,10 @@ class App(UuidAuditedModel):
         # always set the procfile structure for any new release
         if release.build.procfile:
             self.procfile_structure = release.build.procfile
+            release.config.memory,notify_about_violation = self._get_enforced_resource_requests(release)
+            if notify_about_violation:
+                raise DeisException( 'The requests/limits should be  > {}'.format(settings.EYK_DEFAULT_MEMORY_REQUESTS.upper()) )
+            release.config.save()
             self.save()
 
         # deploy application to k8s. Also handles initial scaling
@@ -1138,6 +1142,48 @@ class App(UuidAuditedModel):
             'image_pull_policy': image_pull_policy,
             'set_pod_ip': set_pod_ip
         }
+
+    def _get_enforced_resource_requests(self, release):
+            memory_requests = {}
+            notify_about_violation = False
+            for proc_name,command in release.build.procfile.items():
+                if proc_name in release.config.memory.keys():
+                    memory_requests[proc_name],discrepancy_found = self._check_request_lower_than_default( release.config.memory[proc_name] )
+                    if discrepancy_found:
+                        notify_about_violation = True
+                else:
+                    memory_requests[proc_name] = settings.EYK_DEFAULT_MEMORY_REQUESTS.upper()+"/"+settings.EYK_DEFAULT_MEMORY_LIMITS.upper()
+
+            self.log(
+                'Processes with memory requests enforced: {}'.format(memory_requests),
+                level=logging.INFO
+            )
+            return memory_requests,notify_about_violation
+
+    def _check_request_lower_than_default(self, memory_settings):
+        lowest_values = {"g":1, "m":1024, "k":1048576, "b": 2**30}
+        memory_settings_parts = memory_settings.split("/")
+        memory_limits_present = len(memory_settings_parts)>1
+
+        requests = memory_settings_parts[0].lower()
+        requests_unit = ''.join(filter(str.isalpha, requests))
+        requests_value = int( ''.join(filter(str.isdigit, requests)) )
+        discrepancy_found = False
+
+        if requests_value < lowest_values[requests_unit]:
+            memory_settings_parts[0] = settings.EYK_DEFAULT_MEMORY_REQUESTS.upper()
+            discrepancy_found = True
+
+        # We need to ensure limits >= requests.
+        if discrepancy_found and memory_limits_present:
+            limits = memory_settings_parts[1].lower()
+            limits_unit = ''.join(filter(str.isalpha, limits))
+            limits_value = int( ''.join(filter(str.isdigit, limits)) )
+            if limits_value < lowest_values[limits_unit]:
+                memory_settings_parts[1] =  settings.EYK_DEFAULT_MEMORY_LIMITS.upper()
+        
+        memory_settings = '/'.join(memory_settings_parts)
+        return  memory_settings,discrepancy_found
 
     def set_application_config(self, release):
         """
