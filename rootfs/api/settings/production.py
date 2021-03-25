@@ -449,3 +449,6 @@ if LDAP_ENDPOINT:
 # Engine Yard Kontainers constants declaration
 EYK_DEFAULT_MEMORY_REQUESTS = "1g"
 EYK_DEFAULT_MEMORY_LIMITS = "1g"
+POD_CONSOLE_ENABLED = bool(strtobool(
+    os.environ.get('POD_CONSOLE_ENABLED', 'true')))
+K8S_API_ENDPOINT = os.environ.get('K8S_API_ENDPOINT', '127.0.0.1:80')
