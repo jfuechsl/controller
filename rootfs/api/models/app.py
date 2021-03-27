@@ -1153,7 +1153,7 @@ class App(UuidAuditedModel):
             notify_about_violation = False
             for proc_name,command in release.build.procfile.items():
                 if proc_name in release.config.memory.keys():
-                    memory_requests[proc_name],discrepancy_found = self._check_request_lower_than_default( release.config.memory[proc_name] )
+                    memory_requests[proc_name],discrepancy_found = self.check_request_lower_than_default( release.config.memory[proc_name] )
                     if discrepancy_found:
                         notify_about_violation = True
                 else:
@@ -1165,8 +1165,8 @@ class App(UuidAuditedModel):
             )
             return memory_requests,notify_about_violation
 
-    def _check_request_lower_than_default(self, memory_settings):
-        lowest_values = {"g":1, "m":1024, "k":1048576, "b": 2**30}
+    def check_request_lower_than_default(self, memory_settings):
+        lowest_values = self._get_memory_lowest_values()
         memory_settings_parts = memory_settings.split("/")
         memory_limits_present = len(memory_settings_parts)>1
 
@@ -1189,6 +1189,22 @@ class App(UuidAuditedModel):
         
         memory_settings = '/'.join(memory_settings_parts)
         return  memory_settings,discrepancy_found
+    
+    def _get_memory_lowest_values(self):
+        val = settings.EYK_DEFAULT_MEMORY_REQUESTS.lower()
+        unit = ''.join(filter(str.isalpha, val))
+        amount = int( ''.join(filter(str.isdigit, val)) )
+        lowest = {"g":1, "m":1024, "k":1048576, "b": 2**30}
+
+        if unit == 'g':
+            lowest = {"g":amount, "m":amount*1024, "k":amount*1024**2, "b": amount*1024**3}
+        if unit == 'm':
+            lowest = {"g":amount/1024, "m":amount, "k":amount*1024, "b": amount*1024**2}
+        if unit == 'k':
+            lowest = {"g":amount/1024**2, "m":amount/1024, "k":amount, "b": amount*1024}
+        if unit == 'b':
+            lowest = {"g":amount/1024**3, "m":amount/1024**2, "k":amount/1024, "b": amount}
+        return lowest
 
     def set_application_config(self, release):
         """
