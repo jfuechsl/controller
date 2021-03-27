@@ -18,7 +18,7 @@ class Config(UuidAuditedModel):
     app = models.ForeignKey('App', on_delete=models.CASCADE)
     values = JSONField(default={}, blank=True)
     memory_requests_limits = settings.EYK_DEFAULT_MEMORY_REQUESTS.upper()+"/"+settings.EYK_DEFAULT_MEMORY_LIMITS.upper()
-    memory = JSONField(default={"web": memory_requests_limits,"cmd": memory_requests_limits}, blank=True) 
+    memory = JSONField(default={}, blank=True) 
     lifecycle_post_start = JSONField(default={}, blank=True)
     lifecycle_pre_stop = JSONField(default={}, blank=True)
     cpu = JSONField(default={}, blank=True)
@@ -165,7 +165,9 @@ class Config(UuidAuditedModel):
                 # If that doesn't exist then fallback on app config
                 # usually means a totally new app
                 previous_config = self.app.config_set.latest()
-
+                setattr(self, 'memory', {"web": self.memory_requests_limits,"cmd": self.memory_requests_limits}) 
+            
+            self._memory_guard()
             for attr in ['cpu', 'memory', 'tags', 'registry', 'values',
                          'lifecycle_post_start', 'lifecycle_pre_stop',
                          'termination_grace_period']:
@@ -191,3 +193,13 @@ class Config(UuidAuditedModel):
             self.set_tags({'tags': {}})
 
         return super(Config, self).save(**kwargs)
+
+    def _memory_guard(self):
+        new_data = getattr(self, "memory", {}).copy()
+        for key, value in new_data.items():
+            if value is None:  #the client is unsetting the limit
+                continue
+            memory_settings,discrepancy_found = self.app.check_request_lower_than_default(value)
+            if discrepancy_found:
+                raise DeisException( 'The requests/limits should be > {} for {}'.format(settings.EYK_DEFAULT_MEMORY_REQUESTS.upper(),key) )
+
