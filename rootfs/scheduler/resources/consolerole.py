@@ -33,7 +33,7 @@ class Consolerole(Resource):
             "roleRef": {
                 "apiGroup": "rbac.authorization.k8s.io",
                 "kind": "ClusterRole",
-                "name": "deis-console"
+                "name": "deis:deis-console"
             },
             "subjects": [{
                 "kind": "ServiceAccount",

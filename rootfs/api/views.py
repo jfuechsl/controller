@@ -262,8 +262,11 @@ class AppViewSet(BaseDeisViewSet):
     def console_token(self, request, **kwargs):
         if settings.POD_CONSOLE_ENABLED != True:
             return Response({"error": True, "msg": "EYK console feature not enabled on this cluster"})
-        app = get_object_or_404(models.App, id=self.kwargs["id"])
-        app.log("User {} requested console access to {}".format(request.user , self.kwargs["id"]))
+        try:
+            app = get_object_or_404(models.App, id=self.kwargs["id"])
+        except Http404:
+            return Response({"error": True, "msg": "Application '{}' not found".format(self.kwargs["id"])})
+        app.log("User {} requested console access to {}".format(self.request.user , self.kwargs["id"]))
         self.check_object_permissions(self.request, app)
         try:
             parsed_secrets = json_loads(app._scheduler.secret.get(self.kwargs["id"]).content)["items"]
