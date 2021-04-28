@@ -507,9 +507,12 @@ class App(UuidAuditedModel):
         # always set the procfile structure for any new release
         if release.build.procfile:
             self.procfile_structure = release.build.procfile
-            release.config.memory,notify_about_violation = self._get_enforced_resource_requests(release)
+            release.config.memory,notify_about_violation = self._get_enforced_resource_requests(release, "memory")
             if notify_about_violation:
-                raise DeisException( 'The requests/limits should be  > {}'.format(settings.EYK_DEFAULT_MEMORY_REQUESTS.upper()) )
+                raise DeisException( 'The memory requests/limits should be  > {}'.format(settings.EYK_DEFAULT_MEMORY_REQUESTS.upper()) )
+            release.config.cpu,notify_about_violation = self._get_enforced_resource_requests(release, "cpu")
+            if notify_about_violation:
+                raise DeisException( 'The cpu requests/limits should be  > {}'.format(settings.EYK_DEFAULT_CPU_REQUESTS) )
             release.config.save()
             self.save()
 
@@ -1148,49 +1151,73 @@ class App(UuidAuditedModel):
             'set_pod_ip': set_pod_ip
         }
 
-    def _get_enforced_resource_requests(self, release):
-            memory_requests = {}
+    def _get_enforced_resource_requests(self, release, resource_type):
+            resource_requests = {}
             notify_about_violation = False
+            
+            if resource_type == "memory":
+                default_settings = settings.EYK_DEFAULT_MEMORY_REQUESTS.upper()+"/"+settings.EYK_DEFAULT_MEMORY_LIMITS.upper()
+            if resource_type == "cpu":
+                default_settings = settings.EYK_DEFAULT_CPU_REQUESTS+"/"+settings.EYK_DEFAULT_CPU_LIMITS
+
+            release_config_keys = getattr(release.config, resource_type).keys()
+            release_config = getattr(release.config, resource_type)
+
             for proc_name,command in release.build.procfile.items():
-                if proc_name in release.config.memory.keys():
-                    memory_requests[proc_name],discrepancy_found = self.check_request_lower_than_default( release.config.memory[proc_name] )
+                if proc_name in release_config_keys:
+                    resource_requests[proc_name],discrepancy_found = self.check_request_lower_than_default( resource_type, release_config[proc_name])
                     if discrepancy_found:
                         notify_about_violation = True
                 else:
-                    memory_requests[proc_name] = settings.EYK_DEFAULT_MEMORY_REQUESTS.upper()+"/"+settings.EYK_DEFAULT_MEMORY_LIMITS.upper()
+                    resource_requests[proc_name] = default_settings
 
             self.log(
-                'Processes with memory requests enforced: {}'.format(memory_requests),
+                'Processes with {} requests enforced: {}'.format(resource_type, resource_requests),
                 level=logging.INFO
             )
-            return memory_requests,notify_about_violation
+            return resource_requests,notify_about_violation
 
-    def check_request_lower_than_default(self, memory_settings):
-        lowest_values = self._get_memory_lowest_values()
-        memory_settings_parts = memory_settings.split("/")
-        memory_limits_present = len(memory_settings_parts)>1
+    def check_request_lower_than_default(self, resource_type, resource_requests):
+        if resource_type == "memory":
+            min_requests = self._get_memory_minimum_values()
+            default_limits = settings.EYK_DEFAULT_MEMORY_LIMITS.upper()
+            default_requests = settings.EYK_DEFAULT_MEMORY_REQUESTS.upper()
+        if resource_type == "cpu":
+            min_requests = self._get_cpu_minimum_values()
+            default_limits = settings.EYK_DEFAULT_CPU_LIMITS
+            default_requests = settings.EYK_DEFAULT_CPU_REQUESTS
+        return self._compare_requests_to_minimum_values(resource_requests, min_requests, default_requests, default_limits)
+    
+    def _compare_requests_to_minimum_values(self, resource_requests, min_requests, default_requests, default_limits):
+        resource_requests_parts = resource_requests.split("/")
+        resource_limits_present = len(resource_requests_parts)>1
 
-        requests = memory_settings_parts[0].lower()
-        requests_unit = ''.join(filter(str.isalpha, requests))
-        requests_value = int( ''.join(filter(str.isdigit, requests)) )
+        requests = resource_requests_parts[0]
+        requests_unit, requests_value = self._get_value_and_unit_from_resource(requests)
         discrepancy_found = False
 
-        if requests_value < lowest_values[requests_unit]:
-            memory_settings_parts[0] = settings.EYK_DEFAULT_MEMORY_REQUESTS.upper()
+        if requests_value < min_requests[requests_unit]:
+            resource_requests_parts[0] = default_requests
             discrepancy_found = True
 
         # We need to ensure limits >= requests.
-        if discrepancy_found and memory_limits_present:
-            limits = memory_settings_parts[1].lower()
-            limits_unit = ''.join(filter(str.isalpha, limits))
-            limits_value = int( ''.join(filter(str.isdigit, limits)) )
-            if limits_value < lowest_values[limits_unit]:
-                memory_settings_parts[1] =  settings.EYK_DEFAULT_MEMORY_LIMITS.upper()
+        if discrepancy_found and resource_limits_present:
+            limits = resource_requests_parts[1]
+            limits_unit, limits_value = self._get_value_and_unit_from_resource(limits)
+            if limits_value < min_requests[limits_unit]:
+                resource_requests_parts[1] =  default_limits
         
-        memory_settings = '/'.join(memory_settings_parts)
-        return  memory_settings,discrepancy_found
-    
-    def _get_memory_lowest_values(self):
+        requests_settings = '/'.join(resource_requests_parts)
+        return  requests_settings,discrepancy_found
+
+    def _get_value_and_unit_from_resource(self,resource):
+        resource = resource.lower()
+        # The unit will be b,k,m,g or absolute
+        unit = ''.join(filter(str.isalpha, resource)) or "absolute"
+        value = int( ''.join(filter(str.isdigit, resource)) )
+        return unit,value
+
+    def _get_memory_minimum_values(self):
         val = settings.EYK_DEFAULT_MEMORY_REQUESTS.lower()
         unit = ''.join(filter(str.isalpha, val))
         amount = int( ''.join(filter(str.isdigit, val)) )
@@ -1204,6 +1231,18 @@ class App(UuidAuditedModel):
             lowest = {"g":amount/1024**2, "m":amount/1024, "k":amount, "b": amount*1024}
         if unit == 'b':
             lowest = {"g":amount/1024**3, "m":amount/1024**2, "k":amount/1024, "b": amount}
+        return lowest
+
+    def _get_cpu_minimum_values(self):
+        val = settings.EYK_DEFAULT_CPU_REQUESTS.lower()
+        unit = ''.join(filter(str.isalpha, val))
+        amount = int( ''.join(filter(str.isdigit, val)) )
+        lowest = {"absolute":0.2, "m":200}
+
+        if unit == 'm':
+            lowest = {"absolute":amount/1000.0, "m":amount}
+        else:
+            lowest = {"absolute":amount, "m":int(amount*1000)}
         return lowest
 
     def set_application_config(self, release):
