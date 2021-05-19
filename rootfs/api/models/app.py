@@ -1237,7 +1237,7 @@ class App(UuidAuditedModel):
         val = settings.EYK_DEFAULT_CPU_REQUESTS.lower()
         unit = ''.join(filter(str.isalpha, val))
         amount = int( ''.join(filter(str.isdigit, val)) )
-        lowest = {"absolute":0.2, "m":200}
+        lowest = {"absolute":0.1, "m":100}
 
         if unit == 'm':
             lowest = {"absolute":amount/1000.0, "m":amount}

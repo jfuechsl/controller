@@ -450,8 +450,8 @@ if LDAP_ENDPOINT:
 # Engine Yard Kontainers constants declaration
 EYK_DEFAULT_MEMORY_REQUESTS = os.environ.get('EYK_DEFAULT_MEMORY_REQUESTS', '1g')
 EYK_DEFAULT_MEMORY_LIMITS = os.environ.get('EYK_DEFAULT_MEMORY_LIMITS', '1g')
-EYK_DEFAULT_CPU_REQUESTS = os.environ.get('EYK_DEFAULT_CPU_REQUESTS', '200m')
-EYK_DEFAULT_CPU_LIMITS = os.environ.get('EYK_DEFAULT_CPU_LIMITS', '200m')
+EYK_DEFAULT_CPU_REQUESTS = os.environ.get('EYK_DEFAULT_CPU_REQUESTS', '100m')
+EYK_DEFAULT_CPU_LIMITS = os.environ.get('EYK_DEFAULT_CPU_LIMITS', '100m')
 POD_CONSOLE_ENABLED = bool(strtobool(
     os.environ.get('POD_CONSOLE_ENABLED', 'true')))
 K8S_API_ENDPOINT = os.environ.get('K8S_API_ENDPOINT', '127.0.0.1:80')
