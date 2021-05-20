@@ -18,6 +18,7 @@ class Config(UuidAuditedModel):
     app = models.ForeignKey('App', on_delete=models.CASCADE)
     values = JSONField(default={}, blank=True)
     memory_requests_limits = settings.EYK_DEFAULT_MEMORY_REQUESTS.upper()+"/"+settings.EYK_DEFAULT_MEMORY_LIMITS.upper()
+    cpu_requests_limits = settings.EYK_DEFAULT_CPU_REQUESTS+"/"+settings.EYK_DEFAULT_CPU_LIMITS
     memory = JSONField(default={}, blank=True) 
     lifecycle_post_start = JSONField(default={}, blank=True)
     lifecycle_pre_stop = JSONField(default={}, blank=True)
@@ -166,8 +167,10 @@ class Config(UuidAuditedModel):
                 # usually means a totally new app
                 previous_config = self.app.config_set.latest()
                 setattr(self, 'memory', {"web": self.memory_requests_limits,"cmd": self.memory_requests_limits}) 
+                setattr(self, 'cpu', {"web": self.cpu_requests_limits,"cmd": self.cpu_requests_limits}) 
             
             self._memory_guard()
+            self._cpu_guard()
             for attr in ['cpu', 'memory', 'tags', 'registry', 'values',
                          'lifecycle_post_start', 'lifecycle_pre_stop',
                          'termination_grace_period']:
@@ -199,7 +202,16 @@ class Config(UuidAuditedModel):
         for key, value in new_data.items():
             if value is None:  #the client is unsetting the limit
                 continue
-            memory_settings,discrepancy_found = self.app.check_request_lower_than_default(value)
+            memory_settings,discrepancy_found = self.app.check_request_lower_than_default("memory", value)
             if discrepancy_found:
-                raise DeisException( 'The requests/limits should be > {} for {}'.format(settings.EYK_DEFAULT_MEMORY_REQUESTS.upper(),key) )
+                raise DeisException( 'The memory requests/limits should be > {} for {}'.format(settings.EYK_DEFAULT_MEMORY_REQUESTS.upper(),key) )
+    
+    def _cpu_guard(self):
+        new_data = getattr(self, "cpu", {}).copy()
+        for key, value in new_data.items():
+            if value is None:  #the client is unsetting the limit
+                continue
+            memory_settings,discrepancy_found = self.app.check_request_lower_than_default("cpu", value)
+            if discrepancy_found:
+                raise DeisException( 'The cpu requests/limits should be > {} for {}'.format(settings.EYK_DEFAULT_CPU_REQUESTS,key) )
 
