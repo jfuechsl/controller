@@ -54,3 +54,5 @@ After the `make deploy` finishes, a new pod will be launched but may not be runn
 kubectl get pod --namespace=deis -w | grep deis-controller
 ```
 
+### Distributing
+EYK controller is integrated into ky-infrastructure, and thus distributed through new releases of ky-infrastructure.  The later references which version of controller is included on each release.  As such, having the images properly tagged and uploaded to DockerHub should be enough to accomplish this.
