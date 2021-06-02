@@ -1,19 +1,9 @@
 
-# Deis Controller
+# EYK Controller
 
-[![Build Status](https://travis-ci.org/teamhephy/controller.svg?branch=master)](https://travis-ci.org/teamhephy/controller)
-[![codecov.io](https://codecov.io/github/deis/controller/coverage.svg?branch=master)](https://codecov.io/github/deis/controller?branch=master)
-[![Docker Repository on Quay](https://quay.io/repository/deisci/controller/status "Docker Repository on Quay")](https://quay.io/repository/deisci/controller)
+### Description
 
-Deis (pronounced DAY-iss) Workflow is an open source Platform as a Service (PaaS) that adds a developer-friendly layer to any [Kubernetes](http://kubernetes.io) cluster, making it easy to deploy and manage applications on your own servers.
-
-For more information about the Deis Workflow, please visit the main project page at https://github.com/teamhephy/workflow.
-
-We welcome your input! If you have feedback, please [submit an issue][issues]. If you'd like to participate in development, please read the "Development" section below and [submit a pull request][prs].
-
-# About
-
-The Controller is the central API server for [Deis Workflow][workflow]. It is installed on a [Kubernetes](http://kubernetes.io) cluster, making it easy to deploy and manage applications on your own cluster. Below is a non-exhaustive list of things it can do:
+The Controller is the central API server for an EYK cluster. It is installed on a EKS cluster, making it easy to deploy and manage applications on your own cluster. Below is a non-exhaustive list of things it can do:
 
 * Create a new application
 * Delete an application
@@ -21,16 +11,10 @@ The Controller is the central API server for [Deis Workflow][workflow]. It is in
 * Configure an application
 * Create a new user
 
-# Development
+Although renamed, this is a clone of the Hephy/Deis Controller, with extensions and some rebranding done by Engine Yard.
+Note: work from Engine Yard is versioned on the 'ey-master' branch.
 
-The Deis project welcomes contributions from all developers. The high-level process for development matches many other open source projects. See below for an outline.
-
-* Fork this repository
-* Make your changes
-* [Submit a pull request][prs] (PR) to this repository with your changes, and unit tests whenever possible.
-  * If your PR fixes any [issues][issues], make sure you write Fixes #1234 in your PR description (where #1234 is the number of the issue you're closing)
-* Deis project maintainers will review your code.
-* After two maintainers approve it, they will merge your PR.
+### Development
 
 ## Prerequisites
 
@@ -39,16 +23,11 @@ The Deis project welcomes contributions from all developers. The high-level proc
 Unit tests and code linters for controller run in a Docker container with your local code directory
 mounted in. You need [Docker][] to run `make test`.
 
-### Kubernetes
+### EYK Installation
 
-You'll want to test your code changes interactively in a working Kubernetes cluster. Follow the
-[installation instructions][install-k8s] if you need Kubernetes.
+You'll want to test your code changes interactively in a working EYK cluster. Use the [EYK UI](https://eyk.ey.io) to create a testing cluster on a staging account of your choice (recommended to use 'ky-dredd').
 
-### Workflow Installation
-
-After you have a working Kubernetes cluster, you're ready to [install Workflow](https://docs.teamhephy.com/installing-workflow/).
-
-## Testing Your Code
+### Testing Your Code
 
 When you've built your new feature or fixed a bug, make sure you've added appropriate unit tests and run `make test` to ensure your code works properly.
 
@@ -75,9 +54,5 @@ After the `make deploy` finishes, a new pod will be launched but may not be runn
 kubectl get pod --namespace=deis -w | grep deis-controller
 ```
 
-[install-k8s]: https://kubernetes.io/docs/setup/pick-right-solution
-[issues]: https://github.com/teamhephy/controller/issues
-[prs]: https://github.com/teamhephy/controller/pulls
-[workflow]: https://github.com/teamhephy/workflow
-[Docker]: https://www.docker.com/
-[v2.18]: https://github.com/teamhephy/workflow/releases/tag/v2.21.4
+### Distributing
+EYK controller is integrated into ky-infrastructure, and thus distributed through new releases of ky-infrastructure.  The later references which version of controller is included on each release.  As such, having the images properly tagged and uploaded to DockerHub should be enough to accomplish this.
